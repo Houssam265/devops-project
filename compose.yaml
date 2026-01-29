@@ -4,7 +4,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
-
+    volumes:
+      - mongo-data:/data/db 
   mongo-express:
     image: mongo-express
     ports:
@@ -14,3 +15,9 @@ services:
       ME_CONFIG_BASICAUTH_ENABLED: true
       ME_CONFIG_BASICAUTH_USERNAME: root
       ME_CONFIG_BASICAUTH_PASSWORD: password
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
+    driver: local
