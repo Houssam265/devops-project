@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: notification-service
+  
+  data:
+    mongodb:
+      uri: mongodb://assel:houssam@localhost:27021/notifications_db?authSource=admin
+      auto-index-creation: true
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: password
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8085
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ecommerce.notification: DEBUG
+    org.springframework.data.mongodb: DEBUG

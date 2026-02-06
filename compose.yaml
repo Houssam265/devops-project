@@ -1,23 +1,218 @@
 services:
-  mongo:
+ # MongoDB Instances
+  mongodb-users:
     image: mongo
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-    volumes:
-      - mongo-data:/data/db 
-  mongo-express:
-    image: mongo-express
+    container_name: mongodb-users
     ports:
-      - 8081:8081
+      - "27017:27017"
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://root:password@mongo:27017/
-      ME_CONFIG_BASICAUTH_ENABLED: true
+      MONGO_INITDB_ROOT_USERNAME: assel
+      MONGO_INITDB_ROOT_PASSWORD: houssam
+      MONGO_INITDB_DATABASE: users_db
+    volumes:
+      - users-data:/data/db
+    networks:
+      - ecommerce-network
+     # MongoDB Instances
+  mongodb-products:
+    image: mongo
+    container_name: mongodb-products
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: assel
+      MONGO_INITDB_ROOT_PASSWORD: houssam
+      MONGO_INITDB_DATABASE: products_db
+    volumes:
+      - products-data:/data/db
+    networks:
+      - ecommerce-network
+  mongodb-orders:
+    image: mongo
+    container_name: mongodb-orders
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: assel
+      MONGO_INITDB_ROOT_PASSWORD: houssam
+      MONGO_INITDB_DATABASE: orders_db
+    volumes:
+      - orders-data:/data/db
+    networks:
+      - ecommerce-network
+
+  mongodb-payments:
+    image: mongo
+    container_name: mongodb-payments
+    ports:
+      - "27020:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: assel
+      MONGO_INITDB_ROOT_PASSWORD: houssam
+      MONGO_INITDB_DATABASE: payments_db
+    volumes:
+      - payments-data:/data/db
+    networks:
+      - ecommerce-network
+
+  mongodb-notifications:
+    image: mongo
+    container_name: mongodb-notifications
+    ports:
+      - "27021:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: assel
+      MONGO_INITDB_ROOT_PASSWORD: houssam
+      MONGO_INITDB_DATABASE: notifications_db
+    volumes:
+      - notifications-data:/data/db
+    networks:
+      - ecommerce-network
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    ports:
+      - "8888:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: assel
+      ME_CONFIG_MONGODB_ADMINPASSWORD: houssam
+      ME_CONFIG_MONGODB_SERVER: mongodb-users,mongodb-products,mongodb-orders,mongodb-payments,mongodb-notifications
       ME_CONFIG_BASICAUTH_USERNAME: root
       ME_CONFIG_BASICAUTH_PASSWORD: password
     depends_on:
-      - mongo
+      - mongodb-users
+      - mongodb-products
+      - mongodb-orders
+      - mongodb-payments
+      - mongodb-notifications
+    networks:
+      - ecommerce-network
+     # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - ecommerce-network
+
+  # Redis (cache)
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-network
+    # Microservices
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://assel:houssam@mongodb-users:27017/users_db?authSource=admin
+    depends_on:
+      - mongodb-users
+    networks:
+      - ecommerce-network
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://assel:houssam@mongodb-products:27017/products_db?authSource=admin
+    depends_on:
+      - mongodb-products
+    networks:
+      - ecommerce-network
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://assel:houssam@mongodb-orders:27017/orders_db?authSource=admin
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: password
+    depends_on:
+      - mongodb-orders
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://assel:houssam@mongodb-payments:27017/payments_db?authSource=admin
+    depends_on:
+      - mongodb-payments
+    networks:
+      - ecommerce-network
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://assel:houssam@mongodb-notifications:27017/notifications_db?authSource=admin
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: password
+    depends_on:
+      - mongodb-notifications
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      USER_SERVICE_URL: http://user-service:8081
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      ORDER_SERVICE_URL: http://order-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+      - notification-service
+    networks:
+      - ecommerce-network
 
 volumes:
-  mongo-data:
-    driver: local
+  users-data:
+  products-data:
+  orders-data:
+  payments-data:
+  notifications-data:
+  rabbitmq-data:
+  redis-data:
+
+networks:
+  ecommerce-network:
+    driver: bridge
