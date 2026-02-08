@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: order-service
+  
+  data:
+    mongodb:
+      uri: mongodb://assel:houssam@localhost:27019/orders_db?authSource=admin
+      auto-index-creation: true
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: password
+  
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8083
+
+# URLs des autres microservices
+services:
+  product:
+    url: http://localhost:8082
+  payment:
+    url: http://localhost:8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ecommerce.order: DEBUG
+    org.springframework.data.mongodb: DEBUG

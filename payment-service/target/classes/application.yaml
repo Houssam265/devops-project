@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: payment-service
+  
+  data:
+    mongodb:
+      uri: mongodb://assel:houssam@localhost:27020/payments_db?authSource=admin
+      auto-index-creation: true
+  
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ecommerce.payment: DEBUG
+    org.springframework.data.mongodb: DEBUG
